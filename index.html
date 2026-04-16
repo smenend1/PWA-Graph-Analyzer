@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Analizador de Funciones</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; color: #333; }
+        .container { background-color: #fff; width: 90%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; box-sizing: border-box; }
+        h1 { font-size: 1.5rem; margin-bottom: 10px; color: #2c3e50; }
+        p.subtitle { color: #7f8c8d; margin-bottom: 30px; font-size: 0.9rem; }
+        #preview-container { width: 100%; height: 200px; border: 2px dashed #bdc3c7; border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; background-color: #fafafa; cursor: pointer; }
+        #preview-container:hover { border-color: #3498db; background-color: #f7fbff; }
+        #preview-image { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+        #placeholder-text { color: #95a5a6; font-size: 0.9rem; padding: 10px; }
+        .btn { background-color: #3498db; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.3s ease, transform 0.1s ease; width: 100%; box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2); }
+        .btn:hover { background-color: #2980b9; }
+        .btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2); }
+        .btn:disabled { background-color: #bdc3c7; cursor: not-allowed; box-shadow: none; }
+        #result-container { margin-top: 30px; text-align: left; background-color: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #e1e1e1; display: none; max-height: 250px; overflow-y: auto; }
+        #result-title { font-weight: bold; color: #2c3e50; margin-bottom: 10px; border-bottom: 2px solid #3498db; display: inline-block; padding-bottom: 3px; }
+        #result-text { font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; color: #555; }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-right: 10px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analizador de Funciones</h1>
+        <p class="subtitle">Toca el recuadro para hacer una foto a la gráfica del ejercicio.</p>
+        
+        <input type="file" id="imageInput" accept="image/*" capture="environment" hidden>
+        
+        <div id="preview-container" onclick="document.getElementById('imageInput').click()">
+            <img id="preview-image" src="" alt="Vista previa de la gráfica">
+            <div id="placeholder-text">📷 Toca para capturar<br>(Asegúrate de que se vean los ejes)</div>
+        </div>
+        
+        <button id="analyzeBtn" class="btn" onclick="iniciarAnalisis()" disabled>Analizar Gráfica</button>
+        
+        <div id="result-container">
+            <div id="result-title">Resultados:</div>
+            <div id="result-text"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        // ⚠️ REEMPLAZA ESTO CON LA URL DE TU GOOGLE APPS SCRIPT (ver Parte 2)
+        const URL_DE_TU_SCRIPT = "https://script.google.com/macros/s/AKfycbz8wPnz5UlkADEkfcPgkmfjxOsouBIr0S16XLSCqr2YJegMEp_pjUupGqquIXRf6SiC/exec";
+        // ---------------------
+
+        const input = document.getElementById('imageInput');
+        const previewImage = document.getElementById('preview-image');
+        const placeholderText = document.getElementById('placeholder-text');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resultContainer = document.getElementById('result-container');
+        const resultText = document.getElementById('result-text');
+
+        let imagenBase64 = null; // Guardaremos la imagen aquí
+
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Mostrar vista previa
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    previewImage.src = event.target.result;
+                    previewImage.style.display = 'block';
+                    placeholderText.style.display = 'none';
+                    imagenBase64 = event.target.result.split(',')[1]; // Guardar solo la parte base64
+                    analyzeBtn.disabled = false; // Activar botón de análisis
+                    resultContainer.style.display = 'none'; // Ocultar resultados anteriores
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        async function iniciarAnalisis() {
+            if (!imagenBase64) return;
+            if (URL_DE_TU_SCRIPT === "https://script.google.com/macros/s/AKfycbz8wPnz5UlkADEkfcPgkmfjxOsouBIr0S16XLSCqr2YJegMEp_pjUupGqquIXRf6SiC/exec") {
+                alert("⚠️ Error: No has configurado la URL del script en el archivo HTML. Revisa la Parte 2 de las instrucciones.");
+                return;
+            }
+
+            // UI de carga
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<span class="loading"></span>Analizando...⏳';
+            resultContainer.style.display = 'none';
+            resultText.innerText = '';
+
+            try {
+                const response = await fetch(URL_DE_TU_SCRIPT, {
+                    method: 'POST',
+                    body: JSON.stringify({ image: imagenBase64 }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' } // Necesario para CORS en Apps Script
+                });
+
+                if (!response.ok) throw new Error('Error en la comunicación con el servidor.');
+
+                const data = await response.json();
+                
+                // Mostrar resultados
+                resultText.innerText = data.analysis || "No se pudo obtener un análisis claro de la imagen.";
+                resultContainer.style.display = 'block';
+
+            } catch (error) {
+                console.error(error);
+                resultText.innerText = "❌ Ocurrió un error al analizar la imagen. Inténtalo de nuevo más tarde.";
+                resultContainer.style.display = 'block';
+            } finally {
+                // Restaurar botón
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerText = 'Analizar Gráfica';
+            }
+        }
+
+        // --- REGISTRO DEL SERVICE WORKER (Para PWA) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('ServiceWorker registrado con éxito:', registration.scope);
+                }, err => {
+                    console.log('Fallo en el registro del ServiceWorker:', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
